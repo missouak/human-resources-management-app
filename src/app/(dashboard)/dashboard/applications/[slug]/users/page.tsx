@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation"
-import { User } from "@prisma/client"
+import { type User } from "@clerk/nextjs/server"
 
 import { prisma } from "@/lib/db"
-import { Heading } from "@/components/heading"
-import { Shell } from "@/components/shells/shell"
 import { UsersTable } from "@/components/tables/users-table"
 
 interface UsersPageProps {
@@ -43,7 +41,7 @@ export default async function UsersPage({
   const [column, order] =
     typeof sort === "string"
       ? (sort.split(".") as [
-          keyof Pick<User, "username" | "role"> | undefined,
+          keyof Pick<User, "username"> | undefined,
           "asc" | "desc" | undefined,
         ])
       : []

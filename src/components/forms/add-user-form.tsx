@@ -120,9 +120,9 @@ export function AddUserForm({ actions }: AddUserFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {role.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {String(item[0].toUpperCase() + item.slice(1))}
+                  {role.map((char) => (
+                    <SelectItem key={char} value={char}>
+                      {String(char[0]?.toUpperCase() + char.slice(1))}
                     </SelectItem>
                   ))}
                 </SelectContent>

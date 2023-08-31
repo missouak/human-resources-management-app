@@ -2,6 +2,8 @@ import { cn } from "@/lib/utils"
 
 import "./globals.css"
 
+import { ClerkProvider } from "@clerk/nextjs"
+
 import { fontMono, fontSans } from "@/lib/font"
 import { Toaster } from "@/components/ui/toaster"
 import { Providers } from "@/components/providers"
@@ -25,20 +27,22 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable,
-          fontMono.variable
-        )}
-      >
-        <Providers attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <TailwindIndicator />
-        </Providers>
-        <Toaster />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={cn(
+            "min-h-screen bg-background font-sans antialiased",
+            fontSans.variable,
+            fontMono.variable
+          )}
+        >
+          <Providers attribute="class" defaultTheme="system" enableSystem>
+            {children}
+            <TailwindIndicator />
+          </Providers>
+          <Toaster />
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

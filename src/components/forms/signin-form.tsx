@@ -2,12 +2,12 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { useSignIn } from "@clerk/nextjs"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { signIn } from "next-auth/react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { catchError } from "@/lib/utils"
+import { catchClerkError, catchError } from "@/lib/utils"
 import { authSchema } from "@/lib/validations/auth"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,6 +26,7 @@ type Inputs = z.infer<typeof authSchema>
 
 export function SignInForm() {
   const router = useRouter()
+  const { signIn, isLoaded, setActive } = useSignIn()
   const [isPending, startTransition] = React.useTransition()
   const form = useForm<Inputs>({
     resolver: zodResolver(authSchema),
@@ -35,19 +36,24 @@ export function SignInForm() {
     },
   })
   function onSubmit(data: Inputs) {
+    if (!isLoaded) return
     startTransition(async () => {
       try {
-        const result = await signIn("credentials", {
-          ...data,
-          callbackUrl: "/",
-          redirect: false,
+        const result = await signIn.create({
+          identifier: data.username,
+          password: data.password,
         })
-        if (result?.error) {
-          throw new Error(result.error)
+
+        if (result.status === "complete") {
+          await setActive({ session: result.createdSessionId })
+
+          router.push(`${window.location.origin}/`)
+        } else {
+          /*Investigate why the login hasn't completed */
+          console.log(result)
         }
-        router.push(result?.url!)
       } catch (err) {
-        catchError(err)
+        catchClerkError(err)
       }
     })
   }
