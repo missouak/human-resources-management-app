@@ -25,8 +25,10 @@ import {
   FileTerminal,
   Filter,
   Footprints,
+  GraduationCap,
   HardHat,
   Image,
+  Layout,
   Loader2,
   LogOut,
   Menu,
@@ -53,6 +55,8 @@ import {
   Twitter,
   UploadCloud,
   User,
+  Users,
+  UserX2,
   Volume2,
   VolumeX,
   Wallet,
@@ -104,6 +108,9 @@ export const Icons = {
   alarm: AlarmClock,
   calendar: CalendarDays,
   user: User,
+  users: Users,
+  userX: UserX2,
+  gradaution: GraduationCap,
   terminal: FileTerminal,
   settings: Settings,
   logout: LogOut,
@@ -122,6 +129,7 @@ export const Icons = {
   clothing: Shirt,
   shoes: Footprints,
   accessories: HardHat,
+  layout: Layout,
   nextjs: (props: LucideProps) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}>
       <path
