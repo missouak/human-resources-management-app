@@ -15,3 +15,17 @@ export const authSchema = z.object({
         "Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character",
     }),
 })
+
+export const userPrivateMetadataSchema = z.discriminatedUnion("role", [
+  z.object({
+    role: z.literal("superAdmin"),
+  }),
+  z.object({
+    role: z.literal("admin"),
+    applications: z.array(z.string()),
+  }),
+  z.object({
+    role: z.literal("user"),
+    actions: z.array(z.string()),
+  }),
+])

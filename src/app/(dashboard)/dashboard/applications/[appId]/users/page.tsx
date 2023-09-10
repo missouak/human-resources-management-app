@@ -1,12 +1,13 @@
-import { notFound } from "next/navigation"
-import { type User } from "@clerk/nextjs/server"
+import { notFound, redirect } from "next/navigation"
+import type { Profile } from "@prisma/client"
 
+import { currentProfile } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import { UsersTable } from "@/components/tables/users-table"
+import { AppUsersTable } from "@/components/tables/app-users-table"
 
 interface UsersPageProps {
   params: {
-    slug: string
+    appId: string
   }
   searchParams: {
     [key: string]: string | string[] | undefined
@@ -17,10 +18,12 @@ export default async function UsersPage({
   params,
   searchParams,
 }: UsersPageProps) {
+  const profile = await currentProfile()
+  if (!profile) redirect("/signin")
   const { page, per_page, sort, username, role } = searchParams ?? {}
-  const app = await prisma.application.findFirst({
+  const app = await prisma.application.findUnique({
     where: {
-      slug: params.slug,
+      id: params.appId,
     },
   })
 
@@ -41,21 +44,22 @@ export default async function UsersPage({
   const [column, order] =
     typeof sort === "string"
       ? (sort.split(".") as [
-          keyof Pick<User, "username"> | undefined,
+          keyof Pick<Profile, "username"> | undefined,
           "asc" | "desc" | undefined,
         ])
       : []
 
   const { appUsers, totalUsers } = await prisma.$transaction(async (tx) => {
-    const appUsers = await tx.user.findMany({
+    const appUsers = await tx.profile.findMany({
       where: {
         AND: {
           actions: {
             some: {
-              application: {
-                slug: params.slug,
-              },
+              applicationId: params.appId,
             },
+          },
+          NOT: {
+            id: profile.id,
           },
           username: {
             contains: typeof username === "string" ? username : undefined,
@@ -75,14 +79,12 @@ export default async function UsersPage({
           ? { username: order }
           : { role: order },
     })
-    const totalUsers = await tx.user.count({
+    const totalUsers = await tx.profile.count({
       where: {
         AND: {
           actions: {
             some: {
-              application: {
-                slug: params.slug,
-              },
+              applicationId: params.appId,
             },
           },
           username: {
@@ -98,7 +100,11 @@ export default async function UsersPage({
 
   return (
     <div className="space-y-2.5">
-      <UsersTable data={appUsers} slug={params.slug} pageCount={pageCount} />
+      <AppUsersTable
+        data={appUsers}
+        appId={params.appId}
+        pageCount={pageCount}
+      />
     </div>
   )
 }

@@ -35,3 +35,7 @@ export function catchClerkError(err: unknown) {
     return toast.error(unknownErr)
   }
 }
+
+export function generateSlug(text: string) {
+  return text.toLowerCase().split(" ").join("-")
+}

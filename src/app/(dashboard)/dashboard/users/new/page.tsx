@@ -7,24 +7,22 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { AddUserForm } from "@/components/forms/add-user-form"
-import { Shell } from "@/components/shells/shell"
 
-interface NewUserPageProps {
-  params: {
-    slug: string
-  }
-}
-
-export default async function NewUserPage({ params }: NewUserPageProps) {
+export default async function AddUserPage() {
   const actions = await prisma.action.findMany({
-    where: {
-      application: {
-        slug: params.slug,
-      },
-    },
     select: {
       id: true,
       name: true,
+      application: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      application: {
+        name: "asc",
+      },
     },
   })
   return (

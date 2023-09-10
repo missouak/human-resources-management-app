@@ -14,21 +14,18 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from "@/components/ui/command"
-import { Dialog, DialogTrigger } from "@/components/ui/dialog"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-
-import { Icons } from "../icons"
+import { Icons } from "@/components/icons"
 
 interface AppSwitcherProps
   extends React.ComponentPropsWithoutRef<typeof PopoverTrigger> {
-  currentApp: Pick<Application, "id" | "name" | "slug">
-  apps: Pick<Application, "id" | "name" | "slug">[]
+  currentApp: Pick<Application, "id" | "name">
+  apps: Pick<Application, "id" | "name">[]
   dashboardRedirectPath: string
 }
 
@@ -60,7 +57,7 @@ export function AppSwitcher({
             className="mr-2 aspect-square h-4 w-4 rounded-full"
             style={getRandomPatternStyle(String(currentApp.id))}
           />
-          <span className="line-clamp-1">{currentApp.name}</span>
+          <span className="truncate">{currentApp.name}</span>
           <Icons.chevronUpDown
             className="ml-auto h-4 w-4 shrink-0 opacity-50"
             aria-hidden="true"
@@ -70,14 +67,14 @@ export function AppSwitcher({
       <PopoverContent className="w-[140px] p-0 sm:w-[180px]">
         <Command>
           <CommandList>
-            <CommandInput placeholder="Search store..." />
-            <CommandEmpty>No store found.</CommandEmpty>
+            <CommandInput placeholder="Search App..." />
+            <CommandEmpty>No application found.</CommandEmpty>
             <CommandGroup>
               {apps.map((app) => (
                 <CommandItem
                   key={app.id}
                   onSelect={() => {
-                    router.push(`/dashboard/applications/${app.slug}`)
+                    router.push(`/dashboard/applications/${app.id}/users`)
                     setIsOpen(false)
                   }}
                   className="text-sm"

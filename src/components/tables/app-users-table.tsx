@@ -20,14 +20,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DataTable } from "@/components/data-table/data-table"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
-import { deleteUserAction } from "@/app/_actions/user"
+import { deleteAppUserAction } from "@/app/_actions/user"
 
-interface UsersTableProps {
+interface AppUsersTableProps {
   data: Profile[]
+  appId: string
   pageCount: number
 }
 
-export function UsersTable({ data, pageCount }: UsersTableProps) {
+export function AppUsersTable({ data, appId, pageCount }: AppUsersTableProps) {
   const [isPending, startTransition] = React.useTransition()
   const [selectedRowIds, setSelectedRowIds] = React.useState<string[]>([])
   const columns = React.useMemo<ColumnDef<Profile, unknown>[]>(
@@ -118,8 +119,9 @@ export function UsersTable({ data, pageCount }: UsersTableProps) {
                     row.toggleSelected(false)
 
                     toast.promise(
-                      deleteUserAction({
+                      deleteAppUserAction({
                         userId: row.original.userId,
+                        appId,
                       }),
                       {
                         loading: "Deleting...",
@@ -139,11 +141,13 @@ export function UsersTable({ data, pageCount }: UsersTableProps) {
         ),
       },
     ],
-    [data, pageCount]
+    [data, appId, pageCount]
   )
   function deleteSelectedRows() {
     toast.promise(
-      Promise.all(selectedRowIds.map((id) => deleteUserAction({ userId: id }))),
+      Promise.all(
+        selectedRowIds.map((id) => deleteAppUserAction({ userId: id, appId }))
+      ),
       {
         loading: "Deleting",
         success: () => {
@@ -168,7 +172,7 @@ export function UsersTable({ data, pageCount }: UsersTableProps) {
           title: "usernames",
         },
       ]}
-      newRowLink={`/dashboard/users/new`}
+      newRowLink={`/dashboard/applications/${appId}/users/new`}
       deleteRowsAction={() => void deleteSelectedRows()}
     />
   )

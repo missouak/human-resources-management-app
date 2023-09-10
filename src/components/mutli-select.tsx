@@ -28,7 +28,7 @@ export function MultiSelect({
   //Register as input field to be used in react-hook-form
   React.useEffect(() => {
     if (onChange) onChange(selected?.length ? selected : null)
-  }, [onChange, selected])
+  }, [selected])
 
   const handleSelect = React.useCallback(
     (option: Option) => {
@@ -89,6 +89,7 @@ export function MultiSelect({
                 <Button
                   aria-label="Remove option"
                   size="sm"
+                  type="button"
                   className="ml-2 h-auto bg-transparent p-0 text-primary hover:bg-transparent hover:text-destructive"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -119,7 +120,7 @@ export function MultiSelect({
           />
         </div>
       </div>
-      <div className="relative z-50 mt-2">
+      <div className="relative z-[100] mt-2">
         {isOpen && filteredOptions.length > 0 ? (
           <div className="absolute top-0 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in">
             <CommandGroup className="h-full overflow-auto">

@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import { redirect } from "next/navigation"
 import { env } from "@/env.mjs"
 
 import { prisma } from "@/lib/db"
@@ -13,16 +12,11 @@ import { Shell } from "@/components/shells/shell"
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
-  title: "Stores",
-  description: "Manage your stores",
+  title: "Applications",
+  description: "Manage your applications",
 }
 
 export default async function ApplicationsPage() {
-  const user = {}
-  if (!user) {
-    redirect("/signin")
-  }
-
   const allApps = await prisma.application.findMany()
 
   return (
@@ -47,7 +41,7 @@ export default async function ApplicationsPage() {
           <ApplicationCard
             key={app.id}
             application={app}
-            href={`/dashboard/applications/${app.slug}`}
+            href={`/dashboard/applications/${app.id}/users`}
           />
         ))}
       </section>

@@ -3,39 +3,47 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Option } from "@/types"
+import { isClerkAPIResponseError } from "@clerk/nextjs"
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { Action } from "@prisma/client"
+import { Role, type Action, type Application } from "@prisma/client"
 import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import { z } from "zod"
 
+import { catchClerkError, catchError, cn } from "@/lib/utils"
 import { userSchema } from "@/lib/validations/user"
+import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form"
-
-import { MultiSelect } from "../mutli-select"
-import { PasswordInput } from "../password-input"
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select"
+} from "@/components/ui/select"
+import { Icons } from "@/components/icons"
+import { MultiSelect } from "@/components/mutli-select"
+import { PasswordInput } from "@/components/password-input"
+import { addUserAction } from "@/app/_actions/user"
 
 type Inputs = z.infer<typeof userSchema>
 
 interface AddUserFormProps {
-  actions: Omit<Action, "applicationId">[]
+  actions: Pick<
+    Action & { application: Pick<Application, "name"> },
+    "id" | "name" | "application"
+  >[]
 }
 
-const role = ["user", "admin", "superAdmin"]
+const role = Object.keys(Role)
 
 export function AddUserForm({ actions }: AddUserFormProps) {
   const router = useRouter()
@@ -43,10 +51,6 @@ export function AddUserForm({ actions }: AddUserFormProps) {
   const [selectedActions, setSelectedActions] = React.useState<Option[] | null>(
     null
   )
-  const formatedActions = actions.map<Option>((action) => ({
-    value: action.id,
-    label: action.name,
-  }))
   const form = useForm<Inputs>({
     resolver: zodResolver(userSchema),
     defaultValues: {
@@ -57,19 +61,34 @@ export function AddUserForm({ actions }: AddUserFormProps) {
       actions: [],
     },
   })
-
-  React.useEffect(() => {
-    form.setValue("actions", selectedActions ?? [])
-  }, [selectedActions])
+  const formatedActions = actions.map<Option>((action) => ({
+    value: action.id,
+    label: `${action.name} (${action.application.name})`,
+  }))
 
   function onSubmit(data: Inputs) {
-    console.log(data)
+    startTransition(async () => {
+      try {
+        await addUserAction(data)
+        form.reset()
+        toast.success("User added successfully")
+        router.push("/dashboard/users")
+        router.refresh()
+      } catch (err) {
+        // console.log(err)
+        if (isClerkAPIResponseError(err)) {
+          catchClerkError(err)
+        } else {
+          catchError(err)
+        }
+      }
+    })
   }
   return (
     <Form {...form}>
       <form
-        className="grid gap-4"
-        onSubmit={(...args) => form.handleSubmit(onSubmit)(...args)}
+        className="grid w-full max-w-xl gap-5"
+        onSubmit={(...args) => void form.handleSubmit(onSubmit)(...args)}
       >
         <FormField
           control={form.control}
@@ -80,6 +99,7 @@ export function AddUserForm({ actions }: AddUserFormProps) {
               <FormControl>
                 <Input placeholder="user-1" {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -92,6 +112,7 @@ export function AddUserForm({ actions }: AddUserFormProps) {
               <FormControl>
                 <PasswordInput placeholder="*********" {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -104,51 +125,72 @@ export function AddUserForm({ actions }: AddUserFormProps) {
               <FormControl>
                 <PasswordInput placeholder="*********" {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {role.map((char) => (
-                    <SelectItem key={char} value={char}>
-                      {String(char[0]?.toUpperCase() + char.slice(1))}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormItem>
+        <div className="flex flex-col items-start gap-6 sm:flex-row">
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem
+                className={cn("w-full", field.value === "user" && "sm:w-1/3")}
+              >
+                <FormLabel>Role</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {role.map((char) => (
+                      <SelectItem key={char} value={char}>
+                        {String(char[0]?.toUpperCase() + char.slice(1))}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {form.watch("role") === "user" && (
+            <FormField
+              control={form.control}
+              name="actions"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <FormLabel>Actions</FormLabel>
+                  <FormControl>
+                    <MultiSelect
+                      setSelected={setSelectedActions}
+                      placeholder="Select Actions"
+                      options={formatedActions}
+                      selected={selectedActions}
+                      onChange={(values) =>
+                        field.onChange(values?.map((o) => ({ id: o.value })))
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
-        />
-        <FormField
-          control={form.control}
-          name="actions"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Actions</FormLabel>
-              <FormControl>
-                <MultiSelect
-                  setSelected={setSelectedActions}
-                  placeholder="Select Actions"
-                  options={formatedActions}
-                  selected={field.value}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <div className="flex items-center justify-end">
-          <Button type="submit">Add</Button>
+        </div>
+        <div className="flex flex-col justify-end sm:flex-row">
+          <Button disabled={isPending} type="submit">
+            {isPending && (
+              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Add
+            <span className="sr-only">Add</span>
+          </Button>
         </div>
       </form>
     </Form>

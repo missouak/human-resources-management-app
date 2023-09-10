@@ -1,5 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
+import { MainNavItem } from "@/types"
+import type { Profile } from "@prisma/client"
 
 import { getDashboardSidebarNav } from "@/config/dashboard"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -20,33 +22,22 @@ import { MobileNav } from "@/components/layouts/mobile-nav"
 import { ThemeToggle } from "@/components/layouts/theme-toggle"
 
 interface SiteHeaderProps {
-  user: {
-    username: string
-    emailAddresses: { id: string; emailAddress: string }[]
-    primaryEmailAddressId: string
-    imageUrl: string
-    firstName: string
-    lastName: string
-    privateMetadata: {
-      role: string
-    }
-  }
+  user: Profile
+  navItems: MainNavItem[]
 }
 
-export function SiteHeader({ user }: SiteHeaderProps) {
+export function SiteHeader({ user, navItems }: SiteHeaderProps) {
   const initials = `${user?.username?.charAt(0) ?? ""} ${
     user?.username?.charAt(0) ?? ""
   }`
-  const email =
-    user?.emailAddresses?.find((e) => e.id === user.primaryEmailAddressId)
-      ?.emailAddress ?? ""
+  const email = user.email ?? ""
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center">
-        <MainNav items={[]} />
+        <MainNav items={navItems} />
         <MobileNav
-          mainNavItems={[]}
-          sidebarNavItems={getDashboardSidebarNav(user)}
+          mainNavItems={navItems}
+          sidebarNavItems={getDashboardSidebarNav()}
         />
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
