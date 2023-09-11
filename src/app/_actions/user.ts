@@ -15,25 +15,27 @@ export async function deleteAppUserAction({
   appId: string
 }) {
   try {
-    await prisma.$transaction(async (tx) => {
-      const appActions = await tx.action.findMany({
-        where: {
-          applicationId: appId,
-        },
-        select: {
-          id: true,
-        },
-      })
-      await tx.profile.update({
-        where: {
-          userId,
-        },
-        data: {
-          actions: {
-            disconnect: appActions,
+    const userActions = await prisma.action.findMany({
+      where: {
+        AND: {
+          users: {
+            some: {
+              userId,
+            },
+          },
+          NOT: {
+            applicationId: appId,
           },
         },
-      })
+      },
+      select: {
+        id: true,
+      },
+    })
+    await clerkClient.users.updateUserMetadata(userId, {
+      privateMetadata: {
+        actions: userActions,
+      },
     })
     revalidatePath(`/dashboard/applications/${appId}/users`)
   } catch (err) {
@@ -44,7 +46,6 @@ export async function deleteAppUserAction({
 export async function deleteUserAction({ userId }: { userId: string }) {
   try {
     await clerkClient.users.deleteUser(userId)
-    await prisma.profile.delete({ where: { userId } })
     revalidatePath("/dashboard/users")
   } catch (err) {
     return err
@@ -52,33 +53,15 @@ export async function deleteUserAction({ userId }: { userId: string }) {
 }
 
 export async function addUserAction(input: z.infer<typeof userSchema>) {
-  const userWithSameUsername = await prisma.profile.findFirst({
-    where: {
-      username: input.username,
-    },
-  })
-
-  if (userWithSameUsername) {
-    throw new Error(`User with username ${input.username} already exist.`)
-  }
-  const newUser = await clerkClient.users.createUser({
+  await clerkClient.users.createUser({
     username: input.username,
     password: input.password,
     privateMetadata: {
       role: input.role,
+      actions: input.actions,
     },
   })
-  await prisma.profile.create({
-    data: {
-      userId: newUser.id,
-      username: input.username,
-      imageUrl: newUser.imageUrl,
-      role: input.role,
-      actions: {
-        connect: input.actions ?? [],
-      },
-    },
-  })
+
   revalidatePath("/dashboard/users")
 }
 
@@ -86,14 +69,21 @@ export async function addAppUserAction(
   input: z.infer<typeof addAppUserSchema>,
   appId: string
 ) {
-  await prisma.profile.update({
+  const userActions = await prisma.action.findMany({
     where: {
-      id: input.profileId,
-    },
-    data: {
-      actions: {
-        connect: input.actions,
+      users: {
+        some: {
+          userId: input.userId,
+        },
       },
+    },
+    select: {
+      id: true,
+    },
+  })
+  await clerkClient.users.updateUserMetadata(input.userId, {
+    privateMetadata: {
+      actions: [...userActions, ...input.actions],
     },
   })
   revalidatePath(`/dashboard/application/${appId}/users`)

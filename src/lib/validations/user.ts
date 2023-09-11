@@ -27,7 +27,7 @@ export const userSchema = z
   })
 
 export const addAppUserSchema = z.object({
-  profileId: z.string(),
+  userId: z.string(),
   actions: z.array(
     z.object({
       id: z.string(),

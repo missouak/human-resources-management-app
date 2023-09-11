@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import type { Profile, Role } from "@prisma/client"
 import { ColumnDef } from "@tanstack/react-table"
 import { Link, MoreHorizontal } from "lucide-react"
@@ -28,6 +29,7 @@ interface UsersTableProps {
 }
 
 export function UsersTable({ data, pageCount }: UsersTableProps) {
+  const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
   const [selectedRowIds, setSelectedRowIds] = React.useState<string[]>([])
   const columns = React.useMemo<ColumnDef<Profile, unknown>[]>(
@@ -123,7 +125,10 @@ export function UsersTable({ data, pageCount }: UsersTableProps) {
                       }),
                       {
                         loading: "Deleting...",
-                        success: () => "User deleted successfully.",
+                        success: () => {
+                          router.refresh()
+                          return "User deleted successfully."
+                        },
                         error: (err: unknown) => catchError(err),
                       }
                     )
@@ -148,6 +153,7 @@ export function UsersTable({ data, pageCount }: UsersTableProps) {
         loading: "Deleting",
         success: () => {
           setSelectedRowIds([])
+          router.refresh()
           return "User deleted successfully"
         },
         error: (err: unknown) => {

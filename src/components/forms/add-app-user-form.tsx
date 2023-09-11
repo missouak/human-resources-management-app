@@ -12,6 +12,7 @@ import { z } from "zod"
 
 import { catchError } from "@/lib/utils"
 import { addAppUserSchema } from "@/lib/validations/user"
+import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -27,14 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Icons } from "@/components/icons"
 import { MultiSelect } from "@/components/mutli-select"
 import { addAppUserAction } from "@/app/_actions/user"
 
-import { Icons } from "../icons"
-import { Button } from "../ui/button"
-
 interface AddAppUserFormProps {
-  users: Pick<Profile, "id" | "username" | "imageUrl">[]
+  users: Pick<Profile, "userId" | "username" | "imageUrl">[]
   actions: Pick<Action, "id" | "name">[]
 }
 
@@ -57,7 +56,7 @@ export default function AddAppUserForm({
   const form = useForm<Inputs>({
     resolver: zodResolver(addAppUserSchema),
     defaultValues: {
-      profileId: users[0]!.id,
+      userId: users[0]!.userId,
       actions: [],
     },
   })
@@ -85,7 +84,7 @@ export default function AddAppUserForm({
         <div className="flex flex-col items-start gap-6 sm:flex-row">
           <FormField
             control={form.control}
-            name="profileId"
+            name="userId"
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormLabel>User</FormLabel>
@@ -100,7 +99,7 @@ export default function AddAppUserForm({
                   </FormControl>
                   <SelectContent>
                     {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
+                      <SelectItem key={user.userId} value={user.userId}>
                         <div className="flex items-center space-x-2">
                           <Image
                             src={user.imageUrl}

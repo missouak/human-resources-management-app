@@ -38,7 +38,7 @@ export default async function NewUserPage({ params }: NewUserPageProps) {
       },
     },
     select: {
-      id: true,
+      userId: true,
       username: true,
       imageUrl: true,
     },
