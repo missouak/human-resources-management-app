@@ -42,3 +42,9 @@ export interface NavItemWithOptionalChildren extends NavItem {
 export type MainNavItem = NavItemWithOptionalChildren
 
 export type SidebarNavItem = NavItemWithChildren
+
+export interface Tab {
+  title: string
+  href: string
+  segment: string | null
+}

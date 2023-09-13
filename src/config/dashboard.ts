@@ -10,6 +10,12 @@ export function getDashboardSidebarNav(): SidebarNavItem[] {
     },
     { title: "Users", items: [], href: "/dashboard/users", icon: "user" },
     {
+      title: "Departments",
+      items: [],
+      href: "/dashboard/departments",
+      icon: "department",
+    },
+    {
       title: "Employees",
       items: [],
       href: "/dashboard/employees",

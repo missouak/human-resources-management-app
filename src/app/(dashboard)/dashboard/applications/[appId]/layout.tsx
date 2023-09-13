@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { Tab } from "@/types"
 
 import { prisma } from "@/lib/db"
 import {
@@ -25,16 +26,19 @@ export default async function ApplicationLayout({
     {
       title: "Users",
       href: `/dashboard/applications/${params.appId}/users`,
+      segment: "users",
     },
     {
       title: "Actions",
       href: `/dashboard/applications/${params.appId}/actions`,
+      segment: "actions",
     },
     {
       title: "Analytics",
       href: `/dashboard/applications/${params.appId}/analytics`,
+      segment: "analytics",
     },
-  ]
+  ] satisfies Tab[]
 
   const allApps = await prisma.application.findMany({
     select: {
@@ -67,7 +71,7 @@ export default async function ApplicationLayout({
           />
         ) : null}
       </div>
-      <div className="space-y-4">
+      <div className="space-y-8 overflow-auto">
         <ApplicationTabs tabs={tabs} />
         {children}
       </div>
