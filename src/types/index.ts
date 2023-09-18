@@ -1,3 +1,5 @@
+import { FileWithPath } from "react-dropzone"
+
 import { Icons } from "@/components/icons"
 
 export type ComboboxData = {
@@ -47,4 +49,8 @@ export interface Tab {
   title: string
   href: string
   segment: string | null
+}
+
+export type FileWithPreview = FileWithPath & {
+  preview: string
 }
