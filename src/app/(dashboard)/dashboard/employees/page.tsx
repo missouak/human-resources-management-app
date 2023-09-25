@@ -1,6 +1,8 @@
-import { Employee, Gender } from "@prisma/client"
+import { db } from "@/db"
+import { departments, Employee, employees, services } from "@/db/schema"
+import { Gender } from "@/types"
+import { and, asc, desc, eq, getTableColumns, like, or, sql } from "drizzle-orm"
 
-import { prisma } from "@/lib/db"
 import { EmployeesTable } from "@/components/tables/employees-table"
 
 interface EmployeesPageProps {
@@ -15,12 +17,17 @@ export default async function EmployeesPage({
   const { departmentId, serviceId, cin, gender, sort, per_page, page } =
     searchParams ?? {}
 
-  const departments = await prisma.department.findMany()
-  const services = await prisma.service.findMany({
-    where: {
-      departmentId: typeof departmentId === "string" ? departmentId : "1",
-    },
-  })
+  const departmentsData = await db
+    .select({ id: departments.id, name: departments.name })
+    .from(departments)
+  const servicesData = await db
+    .select({ id: services.id, name: services.name })
+    .from(services)
+    .where(
+      typeof departmentId === "string"
+        ? eq(services.departmentId, departmentId)
+        : undefined
+    )
 
   const limit = typeof per_page === "string" ? parseInt(per_page) : 10
   //Number of items to skip
@@ -39,82 +46,78 @@ export default async function EmployeesPage({
         ])
       : []
 
-  const { employees, totalEmployees } = await prisma.$transaction(
-    async (tx) => {
-      const employees = await tx.employee.findMany({
-        where: {
-          AND: {
-            cin: {
-              contains: typeof cin === "string" ? cin : undefined,
-              mode: "insensitive",
-            },
-            OR: [
-              {
-                id: typeof serviceId === "string" ? serviceId : undefined,
-              },
-              {
-                service: {
-                  departmentId:
-                    typeof departmentId === "string" ? departmentId : undefined,
-                },
-              },
-            ],
-            gender:
-              typeof gender === "string" && gender.includes(".")
-                ? (gender.split(".")[0] as Gender)
-                : (gender as Gender),
-          },
-        },
-        orderBy: { [column ?? "id"]: order },
-        take: limit,
-        skip: offset,
-        include: {
-          service: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      })
+  const { items, count } = await db.transaction(async (tx) => {
+    const employeeColumns = getTableColumns(employees)
+    const items = await tx
+      .select({ ...employeeColumns, serviceName: services.name })
+      .from(employees)
+      .innerJoin(services, eq(employees.serviceId, services.id))
+      .innerJoin(departments, eq(services.departmentId, departments.id))
+      .limit(limit)
+      .offset(offset)
+      .where(
+        and(
+          or(
+            typeof serviceId === "string"
+              ? serviceId.includes(".")
+                ? or(...serviceId.split(".").map((id) => eq(services.id, id)))
+                : eq(services.id, serviceId)
+              : typeof departmentId === "string"
+              ? eq(departments.id, departmentId)
+              : undefined
+          ),
+          typeof cin === "string" ? like(employees.cin, `%${cin}%`) : undefined,
+          typeof gender === "string"
+            ? gender.includes(".")
+              ? eq(employees.gender, gender.split(".")[0] as Gender)
+              : eq(employees.gender, gender as Gender)
+            : undefined
+        )
+      )
+      .orderBy(
+        column && column in employees
+          ? order === "asc"
+            ? asc(employees[column])
+            : desc(employees[column])
+          : asc(employees.id)
+      )
 
-      const totalEmployees = await tx.employee.count({
-        where: {
-          AND: {
-            cin: {
-              contains: typeof cin === "string" ? cin : undefined,
-            },
-            OR: [
-              {
-                id: typeof serviceId === "string" ? serviceId : undefined,
-              },
-              {
-                service: {
-                  departmentId:
-                    typeof departmentId === "string" ? departmentId : undefined,
-                },
-              },
-            ],
-            gender:
-              typeof gender === "string" && gender.includes(".")
-                ? (gender.split(".")[0] as Gender)
-                : (gender as Gender),
-          },
-        },
-      })
+    const count = await tx
+      .select({ count: sql<number>`count(*)` })
+      .from(employees)
+      .innerJoin(services, eq(employees.serviceId, services.id))
+      .innerJoin(departments, eq(services.departmentId, departments.id))
+      .where(
+        and(
+          or(
+            typeof serviceId === "string"
+              ? serviceId.includes(".")
+                ? or(...serviceId.split(".").map((id) => eq(services.id, id)))
+                : eq(services.id, serviceId)
+              : typeof departmentId === "string"
+              ? eq(departments.id, departmentId)
+              : undefined
+          ),
+          typeof cin === "string" ? like(employees.cin, `%${cin}%`) : undefined,
+          typeof gender === "string"
+            ? gender.includes(".")
+              ? eq(employees.gender, gender.split(".")[0] as Gender)
+              : eq(employees.gender, gender as Gender)
+            : undefined
+        )
+      )
+      .then((res) => res[0]?.count ?? 0)
+    return { items, count }
+  })
 
-      return { employees, totalEmployees }
-    }
-  )
-
-  const pageCount = Math.ceil(totalEmployees / limit)
+  const pageCount = Math.ceil(count / limit)
 
   return (
     <EmployeesTable
-      departments={departments}
-      services={services}
+      departments={departmentsData}
+      services={servicesData}
       pageCount={pageCount}
-      employees={employees}
+      employees={items}
     />
   )
 }

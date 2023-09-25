@@ -3,8 +3,13 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import {
+  employees as employeesSchema,
+  type Department,
+  type Employee,
+  type Service,
+} from "@/db/schema"
 import { Option } from "@/types"
-import { Gender, Prisma, type Department, type Service } from "@prisma/client"
 import { SelectValue } from "@radix-ui/react-select"
 import { ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal } from "lucide-react"
@@ -23,26 +28,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DataTable } from "@/components/data-table/data-table"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
-import { deleteDepartmentAction } from "@/app/_actions/department"
-import { deleteUserAction } from "@/app/_actions/user"
+import { deleteEmployeeAction } from "@/app/_actions/employee"
 
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select"
 
-const employeesWithService = Prisma.validator<Prisma.EmployeeDefaultArgs>()({
-  include: {
-    service: {
-      select: {
-        id: true,
-        name: true,
-      },
-    },
-  },
-})
+interface EmployeeWithService extends Employee {
+  serviceName: string
+}
 
 interface EmployeesTableProps {
-  departments: Department[]
-  services: Service[]
-  employees: Prisma.EmployeeGetPayload<typeof employeesWithService>[]
+  departments: Pick<Department, "id" | "name">[]
+  services: Pick<Service, "id" | "name">[]
+  employees: EmployeeWithService[]
   pageCount: number
 }
 
@@ -74,9 +71,7 @@ export function EmployeesTable({
     [searchParams]
   )
 
-  const columns = React.useMemo<
-    ColumnDef<Prisma.EmployeeGetPayload<typeof employeesWithService>, unknown>[]
-  >(
+  const columns = React.useMemo<ColumnDef<EmployeeWithService, unknown>[]>(
     () => [
       {
         id: "select",
@@ -138,7 +133,7 @@ export function EmployeesTable({
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Service" />
         ),
-        cell: ({ row }) => row.original.service.name,
+        cell: ({ row }) => row.original.serviceName,
       },
       {
         accessorKey: "gender",
@@ -146,9 +141,9 @@ export function EmployeesTable({
           <DataTableColumnHeader column={column} title="Gender" />
         ),
         cell: ({ row }) =>
-          `${row.original.gender
-            .charAt(0)
-            .toUpperCase()}${row.original.gender.slice(1)}`,
+          `${row.original
+            .gender!.charAt(0)
+            .toUpperCase()}${row.original.gender!.slice(1)}`,
       },
       {
         id: "actions",
@@ -176,14 +171,15 @@ export function EmployeesTable({
                     row.toggleSelected(false)
 
                     toast.promise(
-                      deleteUserAction({
-                        userId: row.original.id,
+                      deleteEmployeeAction({
+                        id: row.original.id,
+                        revalidateLink: "/dashboard/employees",
                       }),
                       {
                         loading: "Deleting...",
                         success: () => {
                           router.refresh()
-                          return "User deleted successfully."
+                          return "Employee deleted successfully."
                         },
                         error: (err: unknown) => catchError(err),
                       }
@@ -204,13 +200,17 @@ export function EmployeesTable({
   )
   function deleteSelectedRows() {
     toast.promise(
-      Promise.all(selectedRowIds.map((id) => deleteDepartmentAction(id))),
+      Promise.all(
+        selectedRowIds.map((id) =>
+          deleteEmployeeAction({ id, revalidateLink: "/dashboard/employees" })
+        )
+      ),
       {
         loading: "Deleting",
         success: () => {
           setSelectedRowIds([])
           router.refresh()
-          return "User deleted successfully"
+          return "Employee deleted successfully"
         },
         error: (err: unknown) => {
           setSelectedRowIds([])
@@ -267,7 +267,7 @@ export function EmployeesTable({
           {
             id: "gender",
             title: "Gender",
-            options: Object.values(Gender).map<Option>((item) => ({
+            options: employeesSchema.gender.enumValues.map<Option>((item) => ({
               label: `${item.charAt(0).toUpperCase()}${item.slice(1)}`,
               value: item,
             })),

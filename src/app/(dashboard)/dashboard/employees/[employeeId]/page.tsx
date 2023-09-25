@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation"
+import { db } from "@/db"
+import { employees, services as servicesSchema } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
-import { prisma } from "@/lib/db"
 import {
   Card,
   CardContent,
@@ -25,37 +27,34 @@ export default async function EditEmployeePage({
 }: EditEmployeePageProps) {
   const { departmentId } = searchParams ?? {}
 
-  const employee = await prisma.employee.findUnique({
-    where: {
-      id: params.employeeId,
-    },
-    include: {
+  const employee = await db.query.employees.findFirst({
+    where: eq(employees.id, params.employeeId),
+    with: {
       service: {
-        include: {
+        with: {
           department: true,
         },
       },
     },
   })
-
   if (!employee) {
     notFound()
   }
 
-  const departments = await prisma.department.findMany({
-    include: {
+  const departments = await db.query.departments.findMany({
+    with: {
       services: true,
     },
   })
-  const services = await prisma.service.findMany({
-    where: {
-      departmentId:
-        typeof departmentId === "string"
-          ? departmentId
-          : departments.find(({ services }) =>
-              services.some((service) => service.id === employee.id)
-            )?.id,
-    },
+  const services = await db.query.services.findMany({
+    where: eq(
+      servicesSchema.departmentId,
+      typeof departmentId === "string"
+        ? departmentId
+        : departments.find(({ services }) =>
+            services.some((service) => service.id === employee.serviceId)
+          )?.id ?? "1"
+    ),
   })
 
   return (

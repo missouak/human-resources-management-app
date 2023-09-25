@@ -18,14 +18,15 @@ export const authSchema = z.object({
 
 export const userPrivateMetadataSchema = z.discriminatedUnion("role", [
   z.object({
-    role: z.literal("superAdmin"),
-  }),
-  z.object({
     role: z.literal("admin"),
-    applications: z.array(z.string()),
+    actions: z.undefined(),
   }),
   z.object({
     role: z.literal("user"),
-    actions: z.array(z.string()),
+    actions: z.array(
+      z.object({
+        id: z.string(),
+      })
+    ),
   }),
 ])

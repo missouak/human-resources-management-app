@@ -1,16 +1,15 @@
+import { db } from "@/db"
+import { profiles } from "@/db/schema"
 import { auth } from "@clerk/nextjs"
-
-import { prisma } from "./db"
+import { eq } from "drizzle-orm"
 
 export async function currentProfile() {
   const { userId } = auth()
 
   if (!userId) return null
 
-  const profile = await prisma.profile.findUnique({
-    where: {
-      userId,
-    },
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
   })
 
   return profile

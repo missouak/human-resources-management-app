@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { useParams, useRouter } from "next/navigation"
+import { type Service } from "@/db/schema"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { type Service } from "@prisma/client"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -22,8 +22,9 @@ import { Input } from "@/components/ui/input"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { Icons } from "@/components/icons"
 import {
-  addEditServiceAction,
+  addServiceAction,
   deleteServiceAction,
+  editServiceAction,
 } from "@/app/_actions/service"
 
 interface AddDepartmentFormProps {
@@ -50,11 +51,16 @@ export function AddEditServiceForm({ initialData }: AddDepartmentFormProps) {
   function onSubmit(data: Inputs) {
     startTransition(async () => {
       try {
-        await addEditServiceAction({
-          ...data,
-          id: initialData ? initialData.id : "",
-          departmentId: params.departmentId as string,
-        })
+        initialData
+          ? await editServiceAction({
+              ...data,
+              id: initialData.id,
+              departmentId: params.departmentId as string,
+            })
+          : await addServiceAction({
+              ...data,
+              departmentId: params.departmentId as string,
+            })
         form.reset()
         toast.success(message)
         if (!initialData) {

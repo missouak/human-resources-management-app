@@ -1,4 +1,7 @@
-import { prisma } from "@/lib/db"
+import { db } from "@/db"
+import { services as servicesSchema } from "@/db/schema"
+import { eq } from "drizzle-orm"
+
 import {
   Card,
   CardContent,
@@ -19,11 +22,12 @@ export default async function NewEmployeePage({
 }: NewEmployeePageProps) {
   const { departmentId } = searchParams ?? {}
 
-  const departments = await prisma.department.findMany()
-  const services = await prisma.service.findMany({
-    where: {
-      departmentId: typeof departmentId === "string" ? departmentId : "1",
-    },
+  const departments = await db.query.departments.findMany()
+  const services = await db.query.services.findMany({
+    where:
+      typeof departmentId === "string"
+        ? eq(servicesSchema.departmentId, departmentId)
+        : eq(servicesSchema.departmentId, "1"),
   })
 
   return (

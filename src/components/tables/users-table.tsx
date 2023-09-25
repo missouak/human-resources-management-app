@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import type { Profile, Role } from "@prisma/client"
+import type { Profile } from "@/db/schema"
 import { ColumnDef } from "@tanstack/react-table"
 import { Link, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
@@ -82,12 +82,10 @@ export function UsersTable({ data, pageCount }: UsersTableProps) {
           <Badge
             className={cn(
               "uppercase",
-              (cell.getValue() as Role) === "admin"
-                ? "bg-destructive"
-                : "bg-primary"
+              cell.getValue() === "admin" ? "bg-destructive" : "bg-primary"
             )}
           >
-            {cell.getValue() as Role}
+            {cell.getValue() as string}
           </Badge>
         ),
       },

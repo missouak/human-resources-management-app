@@ -1,9 +1,11 @@
 import { headers } from "next/headers"
+import { db } from "@/db"
+import { actionsToProfiles, profiles } from "@/db/schema"
 import { WebhookEvent } from "@clerk/nextjs/server"
-import { Role } from "@prisma/client"
+import { eq } from "drizzle-orm"
 import { Webhook } from "svix"
 
-import { prisma } from "@/lib/db"
+import { userPrivateMetadataSchema } from "@/lib/validations/auth"
 
 export async function POST(req: Request) {
   // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook
@@ -50,53 +52,57 @@ export async function POST(req: Request) {
       status: 400,
     })
   }
-  type PrivateMetadata = {
-    role: Role
-    actions: { id: string }[]
-  }
   // Get the event type
   const eventType = evt.type
 
-  switch (eventType) {
-    case "user.created":
-    case "user.updated": {
-      await prisma.profile.upsert({
-        where: {
-          userId: evt.data.id,
-        },
-        create: {
-          userId: evt.data.id,
-          username: evt.data.username!,
-          role: evt.data.private_metadata.role as PrivateMetadata["role"],
-          imageUrl: evt.data.image_url,
-          actions: {
-            connect: evt.data.private_metadata
-              .actions as PrivateMetadata["actions"],
-          },
-        },
-        update: {
-          email: evt.data.email_addresses[0]?.email_address,
-          imageUrl: evt.data.image_url,
-          username: evt.data.username!,
-          firstName: evt.data.first_name,
-          lastName: evt.data.last_name,
-          actions: {
-            set: evt.data.private_metadata
-              .actions as PrivateMetadata["actions"],
-          },
-        },
+  if (eventType === "user.created") {
+    const { id, username, image_url, private_metadata } = evt.data
+    const userPrivateMetadata =
+      userPrivateMetadataSchema.parse(private_metadata)
+    await db.insert(profiles).values({
+      userId: id,
+      username: username!,
+      imageUrl: image_url,
+      role: userPrivateMetadata.role,
+    })
+    await db.insert(actionsToProfiles).values(
+      userPrivateMetadata.actions
+        ? userPrivateMetadata.actions.map((action) => ({
+            profileId: id,
+            actionId: action.id,
+          }))
+        : []
+    )
+  }
+
+  if (eventType === "user.updated") {
+    const {
+      id: userId,
+      first_name: firstName,
+      last_name: lastName,
+      image_url: imageUrl,
+      username,
+      email_addresses,
+    } = evt.data
+
+    await db
+      .update(profiles)
+      .set({
+        email: email_addresses[0]?.email_address,
+        username: username!,
+        firstName,
+        lastName,
+        imageUrl,
       })
-      break
-    }
-    case "user.deleted": {
-      await prisma.profile.delete({
-        where: {
-          userId: evt.data.id,
-        },
-      })
-    }
-    default: {
-      console.error("Error")
+      .where(eq(profiles.userId, userId))
+  }
+  if (eventType === "user.deleted") {
+    const { id } = evt.data
+    if (id) {
+      await db.delete(profiles).where(eq(profiles.userId, id))
+      await db
+        .delete(actionsToProfiles)
+        .where(eq(actionsToProfiles.profileId, id))
     }
   }
 

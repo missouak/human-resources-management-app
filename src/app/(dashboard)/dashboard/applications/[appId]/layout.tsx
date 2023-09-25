@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
+import { db } from "@/db"
 import { Tab } from "@/types"
 
-import { prisma } from "@/lib/db"
 import {
   PageHeader,
   PageHeaderDescription,
@@ -40,8 +40,8 @@ export default async function ApplicationLayout({
     },
   ] satisfies Tab[]
 
-  const allApps = await prisma.application.findMany({
-    select: {
+  const allApps = await db.query.applications.findMany({
+    columns: {
       id: true,
       name: true,
       description: true,

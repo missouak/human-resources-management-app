@@ -1,16 +1,16 @@
-import { Gender, MarialStatus } from "@prisma/client"
+import { employees } from "@/db/schema"
 import { z } from "zod"
 
 export const employeeSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   cin: z.string(),
-  gender: z.nativeEnum(Gender),
+  gender: z.enum(employees.gender.enumValues),
   phoneNumber: z.string().regex(/^((06|07)[0-9]{8})$/),
   email: z.string().email(),
   address: z.string(),
   birthday: z.date(),
-  maritalStatus: z.nativeEnum(MarialStatus),
+  maritalStatus: z.enum(employees.maritalStatus.enumValues),
   image: z
     .unknown()
     .refine((val) => {

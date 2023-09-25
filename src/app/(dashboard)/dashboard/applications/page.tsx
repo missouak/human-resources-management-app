@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
+import { db } from "@/db"
 import { env } from "@/env.mjs"
 
-import { prisma } from "@/lib/db"
 import { ApplicationCard } from "@/components/cards/application-card"
 import {
   PageHeader,
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ApplicationsPage() {
-  const allApps = await prisma.application.findMany()
+  const allApps = await db.query.applications.findMany()
 
   return (
     <Shell variant="sidebar">

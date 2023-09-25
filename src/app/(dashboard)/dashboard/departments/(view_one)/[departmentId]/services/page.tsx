@@ -1,6 +1,7 @@
-import { Service } from "@prisma/client"
+import { db } from "@/db"
+import { Service, services } from "@/db/schema"
+import { and, asc, desc, eq, like, sql } from "drizzle-orm"
 
-import { prisma } from "@/lib/db"
 import { ServicesTable } from "@/components/tables/services-table"
 
 interface ServicesPageProps {
@@ -36,40 +37,47 @@ export default async function ServicesPage({
         ])
       : []
 
-  const { services, totalServices } = await prisma.$transaction(async (tx) => {
-    const services = await tx.service.findMany({
-      where: {
-        AND: {
-          name: {
-            contains: typeof name === "string" ? name : undefined,
-          },
-          departmentId: params.departmentId,
-        },
-      },
-      take: limit,
-      skip: offset,
-      orderBy: {
-        name: order,
-      },
-    })
-    const totalServices = await tx.service.count({
-      where: {
-        AND: {
-          name: {
-            contains: typeof name === "string" ? name : undefined,
-          },
-          departmentId: params.departmentId,
-        },
-      },
-    })
-    return { services, totalServices }
+  const { items, count } = await db.transaction(async (tx) => {
+    const items = await tx
+      .select()
+      .from(services)
+      .where(
+        and(
+          eq(services.departmentId, params.departmentId),
+          typeof name === "string"
+            ? like(services.name, `%${name}%`)
+            : undefined
+        )
+      )
+      .limit(limit)
+      .offset(offset)
+      .orderBy(
+        column && column in services
+          ? order === "asc"
+            ? asc(services[column])
+            : desc(services[column])
+          : asc(services.id)
+      )
+    const count = await tx
+      .select({ count: sql<number>`count(*)` })
+      .from(services)
+      .where(
+        and(
+          eq(services.departmentId, params.departmentId),
+          typeof name === "string"
+            ? like(services.name, `%${name}%`)
+            : undefined
+        )
+      )
+      .then((res) => res[0]?.count ?? 0)
+    return { items, count }
   })
 
-  const pageCount = Math.ceil(totalServices / limit)
+  const pageCount = Math.ceil(count / limit)
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold tracking-tight">Services</h2>
-      <ServicesTable pageCount={pageCount} services={services} />
+      <ServicesTable pageCount={pageCount} services={items} />
     </div>
   )
 }

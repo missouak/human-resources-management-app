@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Application } from "@prisma/client"
+import type { Application } from "@/db/schema"
 
 import { getRandomPatternStyle } from "@/lib/generate-pattern"
 import { AspectRatio } from "@/components/ui/aspect-ratio"

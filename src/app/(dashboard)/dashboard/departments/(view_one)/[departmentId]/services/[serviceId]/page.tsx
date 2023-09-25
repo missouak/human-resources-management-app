@@ -1,7 +1,9 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { db } from "@/db"
+import { services } from "@/db/schema"
+import { and, eq } from "drizzle-orm"
 
-import { prisma } from "@/lib/db"
 import {
   Card,
   CardContent,
@@ -22,13 +24,11 @@ interface UpdateServicePageProps {
 export default async function UpdateServicePage({
   params,
 }: UpdateServicePageProps) {
-  const service = await prisma.service.findFirst({
-    where: {
-      AND: {
-        id: params.serviceId,
-        departmentId: params.departmentId,
-      },
-    },
+  const service = await db.query.services.findFirst({
+    where: and(
+      eq(services.id, params.serviceId),
+      eq(services.departmentId, params.departmentId)
+    ),
   })
   if (!service) {
     notFound()

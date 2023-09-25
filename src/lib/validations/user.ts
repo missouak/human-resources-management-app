@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client"
+import { profiles } from "@/db/schema"
 import { z } from "zod"
 
 import { authSchema } from "@/lib/validations/auth"
@@ -8,7 +8,7 @@ export const userSchema = z
     username: authSchema.shape.username,
     password: authSchema.shape.password,
     confirmPassword: authSchema.shape.password,
-    role: z.nativeEnum(Role),
+    role: z.enum(profiles.role.enumValues),
     actions: z
       .array(
         z.object({

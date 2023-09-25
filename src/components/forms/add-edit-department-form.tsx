@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { Department } from "@/db/schema"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { type Department } from "@prisma/client"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -22,8 +22,9 @@ import { Input } from "@/components/ui/input"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { Icons } from "@/components/icons"
 import {
-  addEditDepartmentAction,
+  addDepartmentAction,
   deleteDepartmentAction,
+  editDepartmentAction,
 } from "@/app/_actions/department"
 
 interface AddEditDepartmentFormProps {
@@ -51,10 +52,14 @@ export function AddEditDepartmentForm({
   function onSubmit(data: Inputs) {
     startTransition(async () => {
       try {
-        await addEditDepartmentAction({
-          ...data,
-          id: initialData ? initialData.id : "",
-        })
+        initialData
+          ? await editDepartmentAction({
+              ...data,
+              id: initialData.id,
+            })
+          : await addDepartmentAction({
+              ...data,
+            })
         form.reset()
         toast.success(message)
         if (!initialData) {

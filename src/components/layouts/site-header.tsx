@@ -1,7 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
+import type { Profile } from "@/db/schema"
 import { MainNavItem } from "@/types"
-import type { Profile } from "@prisma/client"
 
 import { getDashboardSidebarNav } from "@/config/dashboard"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"

@@ -1,6 +1,7 @@
-import type { Department } from "@prisma/client"
+import { db } from "@/db"
+import { departments, type Department } from "@/db/schema"
+import { asc, desc, like, sql } from "drizzle-orm"
 
-import { prisma } from "@/lib/db"
 import { DepartmentsTable } from "@/components/tables/departments-table"
 
 interface DepartmentsPageProps {
@@ -32,36 +33,41 @@ export default async function DepartmentsPage({
         ])
       : []
 
-  const { departments, totalDepartments } = await prisma.$transaction(
-    async (tx) => {
-      const departments = await tx.department.findMany({
-        where: {
-          name: {
-            contains: typeof name === "string" ? name : undefined,
-          },
-        },
-        take: limit,
-        skip: offset,
-        orderBy: {
-          name: order,
-        },
-      })
-      const totalDepartments = await tx.department.count({
-        where: {
-          name: {
-            contains: typeof name === "string" ? name : undefined,
-          },
-        },
-      })
-      return { departments, totalDepartments }
-    }
-  )
+  const { items, count } = await db.transaction(async (tx) => {
+    const items = await tx
+      .select()
+      .from(departments)
+      .where(
+        typeof name === "string"
+          ? like(departments.name, `%${name}%`)
+          : undefined
+      )
+      .limit(limit)
+      .offset(offset)
+      .orderBy(
+        column && column in departments
+          ? order === "asc"
+            ? asc(departments[column])
+            : desc(departments[column])
+          : asc(departments.id)
+      )
+    const count = await tx
+      .select({ count: sql<number>`count(*)` })
+      .from(departments)
+      .where(
+        typeof name === "string"
+          ? like(departments.name, `%${name}%`)
+          : undefined
+      )
+      .then((res) => res[0]?.count ?? 0)
+    return { items, count }
+  })
 
-  const pageCount = Math.ceil(totalDepartments / limit)
+  const pageCount = Math.ceil(count / limit)
 
   return (
     <div className="space-y-2.5">
-      <DepartmentsTable departments={departments} pageCount={pageCount} />
+      <DepartmentsTable departments={items} pageCount={pageCount} />
     </div>
   )
 }

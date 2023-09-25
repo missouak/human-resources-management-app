@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { profiles, type Action, type Application } from "@/db/schema"
 import { Option } from "@/types"
 import { isClerkAPIResponseError } from "@clerk/nextjs"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Role, type Action, type Application } from "@prisma/client"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -43,8 +43,6 @@ interface AddUserFormProps {
   >[]
 }
 
-const role = Object.keys(Role)
-
 export function AddUserForm({ actions }: AddUserFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
@@ -75,7 +73,6 @@ export function AddUserForm({ actions }: AddUserFormProps) {
         router.push("/dashboard/users")
         router.refresh()
       } catch (err) {
-        // console.log(err)
         if (isClerkAPIResponseError(err)) {
           catchClerkError(err)
         } else {
@@ -143,14 +140,18 @@ export function AddUserForm({ actions }: AddUserFormProps) {
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="capitalize">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {role.map((char) => (
-                      <SelectItem key={char} value={char}>
-                        {String(char[0]?.toUpperCase() + char.slice(1))}
+                    {Object.values(profiles.role.enumValues).map((value) => (
+                      <SelectItem
+                        className="capitalize"
+                        key={value}
+                        value={value}
+                      >
+                        {value}
                       </SelectItem>
                     ))}
                   </SelectContent>

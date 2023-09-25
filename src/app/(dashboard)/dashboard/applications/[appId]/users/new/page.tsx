@@ -1,7 +1,14 @@
 import { redirect } from "next/navigation"
+import { db } from "@/db"
+import {
+  actions as actionsSchema,
+  actionsToProfiles,
+  Profile,
+  profiles,
+} from "@/db/schema"
+import { and, eq, exists, ne, notExists, notInArray, or } from "drizzle-orm"
 
 import { currentProfile } from "@/lib/auth"
-import { prisma } from "@/lib/db"
 import {
   Card,
   CardContent,
@@ -22,43 +29,65 @@ export default async function NewUserPage({ params }: NewUserPageProps) {
   if (!profile) {
     redirect("/signin")
   }
-  const profiles = await prisma.profile.findMany({
-    where: {
-      AND: {
-        actions: {
-          every: {
-            NOT: {
-              applicationId: params.appId,
-            },
-          },
-        },
-        NOT: {
-          id: profile.id,
-        },
-      },
-    },
-    select: {
-      userId: true,
-      username: true,
-      imageUrl: true,
-    },
-  })
-  const actions = await prisma.action.findMany({
-    where: {
-      application: {
-        id: params.appId,
-      },
-    },
-    select: {
+
+  const actions = await db.query.actions.findMany({
+    where: eq(actionsSchema.applicationId, params.appId),
+    columns: {
       id: true,
       name: true,
+    },
+    with: {
       application: {
-        select: {
+        columns: {
           name: true,
         },
       },
     },
   })
+
+  const items = await db.query.actionsToProfiles.findMany({
+    where: and(
+      ne(actionsToProfiles.profileId, profile.userId),
+      notInArray(
+        actionsToProfiles.actionId,
+        actions.map((actions) => actions.id)
+      )
+    ),
+    columns: {
+      actionId: false,
+      profileId: false,
+    },
+    with: {
+      profile: {
+        columns: {
+          userId: true,
+          username: true,
+          imageUrl: true,
+        },
+      },
+    },
+  })
+
+  // const items = await db
+  //   .select({
+  //     userId: profiles.userId,
+  //     username: profiles.username,
+  //     imageUrl: profiles.imageUrl,
+  //   })
+  //   .from(actionsToProfiles)
+  //   .leftJoin(profiles, eq(actionsToProfiles.profileId, profile.userId))
+  //   .where(
+  //     and(
+  //       ne(actionsToProfiles.profileId, profile.userId),
+  //       notInArray(
+  //         actionsToProfiles.actionId,
+  //         actions.map((actions) => actions.id)
+  //       )
+  //     )
+  //   )
+
+  console.log(items.filter((item) => item.profile !== null))
+
   return (
     <Card>
       <CardHeader>
@@ -66,7 +95,17 @@ export default async function NewUserPage({ params }: NewUserPageProps) {
         <CardDescription>Add User to the application</CardDescription>
       </CardHeader>
       <CardContent>
-        <AddAppUserForm users={profiles} actions={actions} />
+        <AddAppUserForm
+          users={
+            items
+              .filter((item) => item.profile !== null)
+              .map((item) => item.profile) as Pick<
+              Profile,
+              "username" | "userId" | "imageUrl"
+            >[]
+          }
+          actions={actions}
+        />
       </CardContent>
     </Card>
   )

@@ -1,8 +1,15 @@
 import { notFound, redirect } from "next/navigation"
-import type { Profile } from "@prisma/client"
+import { db } from "@/db"
+import {
+  actions,
+  actionsToProfiles,
+  applications,
+  Profile,
+  profiles,
+} from "@/db/schema"
+import { and, asc, desc, eq, like, ne, sql } from "drizzle-orm"
 
 import { currentProfile } from "@/lib/auth"
-import { prisma } from "@/lib/db"
 import { AppUsersTable } from "@/components/tables/app-users-table"
 
 interface UsersPageProps {
@@ -21,10 +28,8 @@ export default async function UsersPage({
   const profile = await currentProfile()
   if (!profile) redirect("/signin")
   const { page, per_page, sort, username, role } = searchParams ?? {}
-  const app = await prisma.application.findUnique({
-    where: {
-      id: params.appId,
-    },
+  const app = await db.query.applications.findFirst({
+    where: eq(applications.id, params.appId),
   })
 
   if (!app) {
@@ -49,50 +54,78 @@ export default async function UsersPage({
         ])
       : []
 
-  const { appUsers, totalUsers } = await prisma.$transaction(async (tx) => {
-    const appUsers = await tx.profile.findMany({
-      where: {
-        AND: {
-          actions: {
-            some: {
-              applicationId: params.appId,
-            },
-          },
-          NOT: {
-            id: profile.id,
-          },
-          username: {
-            contains: typeof username === "string" ? username : undefined,
-          },
-        },
-      },
-      take: limit,
-      skip: offset,
-      orderBy:
-        order === "asc"
-          ? column === "username"
-            ? {
-                username: order,
-              }
-            : { role: order }
-          : column === "username"
-          ? { username: order }
-          : { role: order },
-    })
-    const totalUsers = await tx.profile.count({
-      where: {
-        AND: {
-          actions: {
-            some: {
-              applicationId: params.appId,
-            },
-          },
-          username: {
-            contains: typeof username === "string" ? username : undefined,
-          },
-        },
-      },
-    })
+  const { appUsers, totalUsers } = await db.transaction(async (tx) => {
+    const appUsers = await tx
+      .select({
+        profile: profiles,
+      })
+      .from(actionsToProfiles)
+      .innerJoin(profiles, eq(profiles.userId, actionsToProfiles.profileId))
+      .innerJoin(actions, eq(actions.id, actionsToProfiles.actionId))
+      .where(
+        and(
+          eq(actions.applicationId, params.appId),
+          ne(profiles.id, profile.id),
+          typeof username === "string"
+            ? like(profiles.username, `%${username}%`)
+            : undefined
+        )
+      )
+      .limit(limit)
+      .offset(offset)
+      .orderBy(
+        column && column in profiles
+          ? order === "asc"
+            ? asc(profiles[column])
+            : desc(profiles[column])
+          : asc(profiles.id)
+      )
+    // const appUsers = await tx.profile.findMany({
+    //   where: {
+    //     AND: {
+    //       actions: {
+    //         some: {
+    //           applicationId: params.appId,
+    //         },
+    //       },
+    //       NOT: {
+    //         id: profile.id,
+    //       },
+    //       username: {
+    //         contains: typeof username === "string" ? username : undefined,
+    //       },
+    //     },
+    //   },
+    //   take: limit,
+    //   skip: offset,
+    //   orderBy:
+    //     order === "asc"
+    //       ? column === "username"
+    //         ? {
+    //             username: order,
+    //           }
+    //         : { role: order }
+    //       : column === "username"
+    //       ? { username: order }
+    //       : { role: order },
+    // })
+    const totalUsers = await tx
+      .select({
+        count: sql<number>`count(*)`,
+      })
+      .from(actionsToProfiles)
+      .innerJoin(profiles, eq(profiles.userId, actionsToProfiles.profileId))
+      .innerJoin(actions, eq(actions.id, actionsToProfiles.actionId))
+      .where(
+        and(
+          eq(actions.applicationId, params.appId),
+          ne(profiles.id, profile.id),
+          typeof username === "string"
+            ? like(profiles.username, `%${username}%`)
+            : undefined
+        )
+      )
+      .then((res) => res[0]?.count ?? 0)
     return { appUsers, totalUsers }
   })
 
@@ -101,7 +134,7 @@ export default async function UsersPage({
   return (
     <div className="space-y-2.5">
       <AppUsersTable
-        data={appUsers}
+        data={appUsers.map((obj) => obj.profile)}
         appId={params.appId}
         pageCount={pageCount}
       />

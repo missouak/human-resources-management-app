@@ -1,4 +1,7 @@
-import { prisma } from "@/lib/db"
+import { db } from "@/db"
+import { actions } from "@/db/schema"
+import { asc } from "drizzle-orm"
+
 import {
   Card,
   CardContent,
@@ -9,21 +12,19 @@ import {
 import { AddUserForm } from "@/components/forms/add-user-form"
 
 export default async function AddUserPage() {
-  const actions = await prisma.action.findMany({
-    select: {
+  const items = await db.query.actions.findMany({
+    columns: {
       id: true,
       name: true,
+    },
+    with: {
       application: {
-        select: {
+        columns: {
           name: true,
         },
       },
     },
-    orderBy: {
-      application: {
-        name: "asc",
-      },
-    },
+    orderBy: [asc(actions.applicationId)],
   })
   return (
     <Card>
@@ -32,7 +33,7 @@ export default async function AddUserPage() {
         <CardDescription>Add User to the application</CardDescription>
       </CardHeader>
       <CardContent>
-        <AddUserForm actions={actions} />
+        <AddUserForm actions={items} />
       </CardContent>
     </Card>
   )

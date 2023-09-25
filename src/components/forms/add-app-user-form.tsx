@@ -3,9 +3,9 @@
 import * as React from "react"
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
+import type { Action, Profile } from "@/db/schema"
 import { Option } from "@/types"
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { Action, Profile } from "@prisma/client"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -56,7 +56,7 @@ export default function AddAppUserForm({
   const form = useForm<Inputs>({
     resolver: zodResolver(addAppUserSchema),
     defaultValues: {
-      userId: users[0]!.userId,
+      userId: users[0]?.userId,
       actions: [],
     },
   })

@@ -51,6 +51,18 @@ export interface Tab {
   segment: string | null
 }
 
+export interface StoredFile {
+  id: string
+  name: string
+  url: string
+}
+
 export type FileWithPreview = FileWithPath & {
   preview: string
 }
+
+export type Gender = "male" | "female"
+
+export type MaritalStatus = "single" | "married" | "widowed" | "divorced"
+
+export type UserRole = "user" | "admin"

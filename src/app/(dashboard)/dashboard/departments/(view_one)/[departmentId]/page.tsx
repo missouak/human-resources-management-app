@@ -1,8 +1,10 @@
 import { type Metadata } from "next"
 import { notFound } from "next/navigation"
+import { db } from "@/db"
+import { departments } from "@/db/schema"
 import { env } from "@/env.mjs"
+import { eq } from "drizzle-orm"
 
-import { prisma } from "@/lib/db"
 import {
   Card,
   CardContent,
@@ -29,9 +31,9 @@ export default async function UpdateDepartmentPage({
 }: UpdateDepartmentPageProps) {
   const departmentId = params.departmentId
 
-  const department = await prisma.department.findFirst({
-    where: { id: departmentId },
-    select: {
+  const department = await db.query.departments.findFirst({
+    where: eq(departments.id, departmentId),
+    columns: {
       id: true,
       name: true,
     },

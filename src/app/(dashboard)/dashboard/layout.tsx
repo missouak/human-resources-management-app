@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
+import { db } from "@/db"
 import type { MainNavItem, NavItemWithChildren } from "@/types"
 
 import { getDashboardSidebarNav } from "@/config/dashboard"
 import { currentProfile } from "@/lib/auth"
-import { prisma } from "@/lib/db"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SidebarNav } from "@/components/layouts/sidebar-nav"
 import { SiteHeader } from "@/components/layouts/site-header"
@@ -21,13 +21,15 @@ export default async function Layout({ children }: LayoutProps) {
 
   if (profile.role === "user") redirect("/")
 
-  const apps = await prisma.application.findMany({
-    select: {
+  const apps = await db.query.applications.findMany({
+    columns: {
       id: true,
       name: true,
       slug: true,
+    },
+    with: {
       actions: {
-        select: {
+        columns: {
           id: true,
           name: true,
           slug: true,
@@ -46,7 +48,7 @@ export default async function Layout({ children }: LayoutProps) {
           (action) =>
             ({
               title: action.name,
-              description: action.description,
+              description: action.description ?? "",
               href: `/${app.slug}/${action.slug}`,
               items: [],
             }) satisfies NavItemWithChildren

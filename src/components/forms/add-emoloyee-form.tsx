@@ -3,9 +3,9 @@
 import * as React from "react"
 import Image from "next/image"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import type { FileWithPreview } from "@/types"
+import { employees, type Department, type Service } from "@/db/schema"
+import type { FileWithPreview, StoredFile } from "@/types"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Gender, MarialStatus, Service, type Department } from "@prisma/client"
 import { SelectValue } from "@radix-ui/react-select"
 import { generateReactHelpers } from "@uploadthing/react/hooks"
 import { useForm } from "react-hook-form"
@@ -80,14 +80,22 @@ export function AddEmployeeForm({
   function onSubmit(data: Inputs) {
     startTransition(async () => {
       try {
-        const imageUrl = isArrayOfFile(data.image)
+        const image = isArrayOfFile(data.image)
           ? await startUpload(data.image).then((res) => {
-              const urls = res?.map((image) => image.url)
-              return urls && urls.length > 0 ? urls[0] : null
+              const urls = res?.map<StoredFile>((image) => ({
+                id: image.key,
+                name: image.name,
+                url: image.url,
+              }))
+              return urls ?? null
             })
           : null
 
-        await addEmployeeAction({ ...data, imageUrl: imageUrl ?? null })
+        await addEmployeeAction({
+          ...data,
+          image: image,
+          revalidateLink: redirectLink,
+        })
 
         toast.success("Employee added successfully.")
 
@@ -236,21 +244,24 @@ export function AddEmployeeForm({
                           onValueChange={field.onChange}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="capitalize">
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {Object.values(Gender).map((value) => {
-                              return (
-                                <SelectItem key={value} value={value}>
-                                  {String(
-                                    value.charAt(0).toUpperCase() +
-                                      value.slice(1)
-                                  )}
-                                </SelectItem>
-                              )
-                            })}
+                            {Object.values(employees.gender.enumValues).map(
+                              (value) => {
+                                return (
+                                  <SelectItem
+                                    className="capitalize"
+                                    key={value}
+                                    value={value}
+                                  >
+                                    {value}
+                                  </SelectItem>
+                                )
+                              }
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -268,18 +279,21 @@ export function AddEmployeeForm({
                           onValueChange={field.onChange}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="capitalize">
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {Object.values(MarialStatus).map((value) => {
+                            {Object.values(
+                              employees.maritalStatus.enumValues
+                            ).map((value) => {
                               return (
-                                <SelectItem key={value} value={value}>
-                                  {String(
-                                    value.charAt(0).toUpperCase() +
-                                      value.slice(1)
-                                  )}
+                                <SelectItem
+                                  className="capitalize"
+                                  key={value}
+                                  value={value}
+                                >
+                                  {value}
                                 </SelectItem>
                               )
                             })}

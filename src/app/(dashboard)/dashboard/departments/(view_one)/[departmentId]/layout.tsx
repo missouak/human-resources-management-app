@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
+import { db } from "@/db"
 import type { Tab } from "@/types"
 
-import { prisma } from "@/lib/db"
 import { PageHeader, PageHeaderHeading } from "@/components/page-header"
 import { ApplicationTabs } from "@/components/pagers/app-tabs"
 import { DepartmentSwitcher } from "@/components/pagers/departement-switcher"
@@ -36,8 +36,8 @@ export default async function DepartmentLayout({
     },
   ] satisfies Tab[]
 
-  const allDepartments = await prisma.department.findMany({
-    select: {
+  const allDepartments = await db.query.departments.findMany({
+    columns: {
       id: true,
       name: true,
     },
